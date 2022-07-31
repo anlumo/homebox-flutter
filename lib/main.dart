@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fomebox/graphql/server.dart';
 import 'package:fomebox/navbar.dart';
 
 void main() {
@@ -25,7 +27,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.deepPurple,
       ),
-      home: const NavBar(),
+      home: BlocProvider(create: (_) => ServerCubit(), child: const NavBar()),
     );
   }
 }

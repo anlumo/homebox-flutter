@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:fomebox/locations/locationslist.dart';
 import 'package:fomebox/locations/newlocation.dart';
 

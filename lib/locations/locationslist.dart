@@ -1,4 +1,8 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fomebox/graphql/server.dart';
 
 import 'locationdetails.dart';
 
@@ -11,7 +15,8 @@ class LocationsList extends StatefulWidget {
 
 class LocationsListState extends State<LocationsList>
     with TickerProviderStateMixin {
-  bool loaded = true;
+  List<dynamic>? locations;
+  bool loading = false;
 
   @override
   void initState() {
@@ -25,28 +30,39 @@ class LocationsListState extends State<LocationsList>
 
   @override
   Widget build(BuildContext context) {
-    return loaded
-        ? ListView.builder(
-            itemCount: 10,
-            itemBuilder: (BuildContext context, int index) {
-              return ListTile(
-                title: Text('Item ${index + 1}'),
-                onTap: () {
-                  setState(() {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                LocationDetails('item$index')));
-                  });
-                },
-              );
-            },
-          )
-        : const Center(
+    return BlocBuilder<ServerCubit, ServerConnectionState?>(
+        builder: (context, state) {
+      if (locations == null && !loading && state != null) {
+        loading = true;
+        context.read<ServerCubit>().allLocations().then((locations) {
+          setState(() {
+            this.locations = locations;
+            loading = false;
+          });
+        });
+        return const Center(
             child: CircularProgressIndicator(
-            value: null,
-            semanticsLabel: 'Loading progress indicator',
-          ));
+          value: null,
+          semanticsLabel: 'Loading progress indicator',
+        ));
+      }
+      return ListView.builder(
+        itemCount: locations!.length,
+        itemBuilder: (BuildContext context, int index) {
+          return ListTile(
+            title: Text(locations![index]['name']),
+            onTap: () {
+              setState(() {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            LocationDetails(locations![index]['id'])));
+              });
+            },
+          );
+        },
+      );
+    });
   }
 }

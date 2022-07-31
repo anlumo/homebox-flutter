@@ -27,9 +27,14 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  cookie_jar: ^3.0.1
+  dio: ^4.0.6
+  dio_cookie_manager: ^2.0.0
   flutter:
     sdk: flutter
 
+  flutter_bloc: ^8.0.1
+  gql_dio_link: ^0.2.2
   graphql_flutter: ^5.1.0
 
 dev_dependencies:
