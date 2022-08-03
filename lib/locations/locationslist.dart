@@ -35,8 +35,10 @@ class LocationsListState extends State<LocationsList>
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               var locations = snapshot.data as List<dynamic>?;
-              if (locations == null) {
-                return const Center(child: Text("Unable to load data."));
+              if (locations == null || snapshot.hasError) {
+                return Center(
+                    child: Text(
+                        "Unable to load data: ${(snapshot.error as Errors).describe()}"));
               }
               return ListView.builder(
                 itemCount: locations.length,

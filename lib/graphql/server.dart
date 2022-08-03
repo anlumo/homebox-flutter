@@ -12,6 +12,21 @@ enum Errors {
   queryException,
 }
 
+extension ErrorNames on Errors {
+  String describe() {
+    switch (this) {
+      case Errors.notLoggedIn:
+        {
+          return "Not logged in.";
+        }
+      case Errors.queryException:
+        {
+          return "Invalid query.";
+        }
+    }
+  }
+}
+
 class ServerConnectionState {
   Uri uri;
   Link link;
