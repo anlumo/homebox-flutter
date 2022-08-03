@@ -69,13 +69,13 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
 
   Future<List<dynamic>> allLocations() async {
     if (state == null) {
-      throw Errors.notLoggedIn;
+      return Future.error(Errors.notLoggedIn);
     }
     final QueryResult result = await state!.client
         .query(QueryOptions(document: gql(_allLocationsQuery)));
     if (result.hasException) {
       log(result.exception.toString());
-      throw Errors.queryException;
+      return Future.error(Errors.queryException);
     }
     log("Query result: ${result.data.toString()}");
     return result.data!['allLocations'];
