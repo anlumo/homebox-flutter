@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fomebox/locations/locations.dart';
 
-import 'settings.dart';
+import 'settings/settings.dart';
 
 class NavBar extends StatefulWidget {
   const NavBar({Key? key}) : super(key: key);

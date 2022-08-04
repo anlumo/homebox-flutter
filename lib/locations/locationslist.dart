@@ -13,11 +13,10 @@ class LocationsList extends StatefulWidget {
 
 class LocationsListState extends State<LocationsList>
     with TickerProviderStateMixin {
-  late Future<List<dynamic>?> locationsFuture;
+  Future<List<dynamic>?>? locationsFuture;
 
   @override
   void initState() {
-    locationsFuture = context.read<ServerCubit>().allLocations();
     super.initState();
   }
 
@@ -28,6 +27,8 @@ class LocationsListState extends State<LocationsList>
 
   @override
   Widget build(BuildContext context) {
+    locationsFuture ??= context.read<ServerCubit>().allLocations();
+
     return BlocBuilder<ServerCubit, ServerConnectionState?>(
         builder: (context, state) {
       return FutureBuilder(

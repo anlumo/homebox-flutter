@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fomebox/graphql/server.dart';
 import 'package:fomebox/navbar.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(const MyApp());
 }
@@ -28,6 +30,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.deepPurple,
       ),
       home: BlocProvider(create: (_) => ServerCubit(), child: const NavBar()),
+      navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

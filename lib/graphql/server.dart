@@ -1,11 +1,18 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fomebox/main.dart';
+import 'package:fomebox/settings/login_form.dart';
 import 'package:gql_dio_link/gql_dio_link.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+
+import 'package:fomebox/main.dart';
 
 enum Errors {
   notLoggedIn,
@@ -74,6 +81,67 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
     }
   }
 
+  Future<void> checkLogin() async {
+    if (state != null) {
+      return;
+    }
+    var context = navigatorKey.currentContext;
+    if (context != null) {
+      var completer = Completer();
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        var uriController = TextEditingController();
+        var passwordController = TextEditingController();
+        var formKey = GlobalKey<FormState>();
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Login"),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    LoginForm(
+                      showLoginButton: false,
+                      uriController: uriController,
+                      passwordController: passwordController,
+                      formKey: formKey,
+                    )
+                  ],
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Login'),
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Logging In')));
+
+                        login(Uri.parse(uriController.text),
+                                passwordController.text)
+                            .then((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Login successful!')));
+                          completer.complete();
+                        }).catchError((error) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content:
+                                  Text('Login failed: ${error.toString()}')));
+                          checkLogin().then((_) => completer.complete());
+                        });
+
+                        Navigator.pop(context, 'OK');
+                      }
+                    },
+                  )
+                ],
+              );
+            });
+      });
+      await completer.future;
+    }
+  }
+
   static const String _allLocationsQuery = r'''
   query allLocations() {
     allLocations {
@@ -83,6 +151,7 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
 ''';
 
   Future<List<dynamic>> allLocations() async {
+    await checkLogin();
     if (state == null) {
       return Future.error(Errors.notLoggedIn);
     }
