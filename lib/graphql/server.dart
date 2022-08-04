@@ -153,9 +153,21 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
 ''';
 
   Future<List<dynamic>> allLocations() async {
-    await checkLogin();
     if (state == null) {
-      return Future.error(Errors.notLoggedIn);
+      var prefs = await SharedPreferences.getInstance();
+      var uriStr = prefs.getString('uri');
+      if (uriStr == null) {
+        await checkLogin();
+        if (state == null) {
+          return Future.error(Errors.notLoggedIn);
+        }
+      } else {
+        var uri = Uri.parse(uriStr);
+        var link = Link.from(
+            [DioLink(uri.resolve('/api/v1').toString(), client: _dio)]);
+        var client = GraphQLClient(link: link, cache: GraphQLCache());
+        emit(ServerConnectionState(uri: uri, link: link, client: client));
+      }
     }
     final QueryResult result = await state!.client
         .query(QueryOptions(document: gql(_allLocationsQuery)));
