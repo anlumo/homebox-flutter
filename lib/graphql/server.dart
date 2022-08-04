@@ -87,60 +87,73 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
     if (state != null) {
       return;
     }
-    var context = navigatorKey.currentContext;
-    if (context != null) {
-      var completer = Completer();
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        var uriController = TextEditingController();
-        var passwordController = TextEditingController();
-        var formKey = GlobalKey<FormState>();
-        showDialog(
-            context: context,
-            builder: (context) {
-              var messenger = ScaffoldMessenger.of(context);
-              return AlertDialog(
-                title: const Text("Login"),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    LoginForm(
-                      showLoginButton: false,
-                      uriController: uriController,
-                      passwordController: passwordController,
-                      formKey: formKey,
+    var prefs = await SharedPreferences.getInstance();
+    var uriStr = prefs.getString('uri');
+    if (uriStr == null) {
+      var context = navigatorKey.currentContext;
+      if (context != null) {
+        var completer = Completer();
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          var uriController = TextEditingController();
+          var passwordController = TextEditingController();
+          var formKey = GlobalKey<FormState>();
+          showDialog(
+              context: context,
+              builder: (context) {
+                var messenger = ScaffoldMessenger.of(context);
+                return AlertDialog(
+                  title: const Text("Login"),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      LoginForm(
+                        showLoginButton: false,
+                        uriController: uriController,
+                        passwordController: passwordController,
+                        formKey: formKey,
+                      )
+                    ],
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text('Login'),
+                      onPressed: () {
+                        if (formKey.currentState!.validate()) {
+                          messenger.showSnackBar(
+                              const SnackBar(content: Text('Logging In')));
+
+                          login(Uri.parse(uriController.text),
+                                  passwordController.text)
+                              .then((_) {
+                            messenger.showSnackBar(const SnackBar(
+                                content: Text('Login successful!')));
+                            completer.complete();
+                          }).catchError((error) {
+                            messenger.showSnackBar(SnackBar(
+                                content:
+                                    Text('Login failed: ${error.toString()}')));
+                            checkLogin().then((_) => completer.complete());
+                          });
+
+                          Navigator.pop(context, 'OK');
+                        }
+                      },
                     )
                   ],
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Login'),
-                    onPressed: () {
-                      if (formKey.currentState!.validate()) {
-                        messenger.showSnackBar(
-                            const SnackBar(content: Text('Logging In')));
-
-                        login(Uri.parse(uriController.text),
-                                passwordController.text)
-                            .then((_) {
-                          messenger.showSnackBar(const SnackBar(
-                              content: Text('Login successful!')));
-                          completer.complete();
-                        }).catchError((error) {
-                          messenger.showSnackBar(SnackBar(
-                              content:
-                                  Text('Login failed: ${error.toString()}')));
-                          checkLogin().then((_) => completer.complete());
-                        });
-
-                        Navigator.pop(context, 'OK');
-                      }
-                    },
-                  )
-                ],
-              );
-            });
-      });
-      await completer.future;
+                );
+              });
+        });
+        await completer.future;
+        if (state == null) {
+          return Future.error(Errors.notLoggedIn);
+        }
+      }
+    } else {
+      var uri = Uri.parse(uriStr);
+      var link =
+          Link.from([DioLink(uri.resolve('/api/v1').toString(), client: _dio)]);
+      var client = GraphQLClient(link: link, cache: GraphQLCache());
+      emit(ServerConnectionState(uri: uri, link: link, client: client));
     }
   }
 
@@ -153,23 +166,8 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
 ''';
 
   Future<List<dynamic>> allLocations() async {
-    if (state == null) {
-      var prefs = await SharedPreferences.getInstance();
-      var uriStr = prefs.getString('uri');
-      if (uriStr == null) {
-        await checkLogin();
-        if (state == null) {
-          return Future.error(Errors.notLoggedIn);
-        }
-      } else {
-        var uri = Uri.parse(uriStr);
-        var link = Link.from(
-            [DioLink(uri.resolve('/api/v1').toString(), client: _dio)]);
-        var client = GraphQLClient(link: link, cache: GraphQLCache());
-        emit(ServerConnectionState(uri: uri, link: link, client: client));
-      }
-    }
-    final QueryResult result = await state!.client
+    await checkLogin();
+    final result = await state!.client
         .query(QueryOptions(document: gql(_allLocationsQuery)));
     if (result.hasException) {
       log(result.exception.toString());
@@ -177,5 +175,23 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
     }
     log("Query result: ${result.data.toString()}");
     return result.data!['allLocations'];
+  }
+
+  static const String _renameLocationMutation = r'''
+  mutation renameLocation($id: UUID!, $name: String!) {
+    updateLocation(id: $id, name: $name)
+  }
+''';
+
+  Future<void> renameLocation(String id, String name) async {
+    await checkLogin();
+    final result = await state!.client.mutate(
+        MutationOptions(document: gql(_renameLocationMutation), variables: {
+      "id": id,
+      "name": name,
+    }));
+    if (result.hasException) {
+      return Future.error(result.exception.toString());
+    }
   }
 }

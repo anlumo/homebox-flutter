@@ -16,16 +16,6 @@ class LocationsListState extends State<LocationsList>
   Future<List<dynamic>?>? locationsFuture;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     locationsFuture ??= context.read<ServerCubit>().allLocations();
 
@@ -42,19 +32,30 @@ class LocationsListState extends State<LocationsList>
                         "Unable to load data: ${(snapshot.error as Errors).describe()}"));
               }
               return ListView.builder(
-                itemCount: locations.length,
-                itemBuilder: (BuildContext context, int index) => ListTile(
-                    title: Text(locations[index]['name']),
-                    onTap: () {
-                      setState(() {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    LocationDetails(locations[index]['id'])));
-                      });
-                    }),
-              );
+                  itemCount: locations.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final nameController = TextEditingController();
+                    return Dismissible(
+                        key: Key(locations[index]['id']),
+                        onDismissed: (direction) {
+                          context.read<ServerCubit>().renameLocation(
+                                locations[index]['id'],
+                                nameController.text,
+                              );
+                        },
+                        background: Container(color: Colors.red),
+                        child: ListTile(
+                            title: Text(locations[index]['name']),
+                            onTap: () {
+                              setState(() {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => LocationDetails(
+                                            locations[index], nameController)));
+                              });
+                            }));
+                  });
             }
             return const Center(
                 child: CircularProgressIndicator(
