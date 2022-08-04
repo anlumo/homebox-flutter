@@ -11,8 +11,7 @@ import 'package:fomebox/settings/login_form.dart';
 import 'package:gql_dio_link/gql_dio_link.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-
-import 'package:fomebox/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum Errors {
   notLoggedIn,
@@ -67,6 +66,9 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
       emit(null);
     } else {
       log("Logged in");
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('uri', uri.toString());
+
       var link =
           Link.from([DioLink(uri.resolve('/api/v1').toString(), client: _dio)]);
       var client = GraphQLClient(link: link, cache: GraphQLCache());
@@ -95,6 +97,7 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
         showDialog(
             context: context,
             builder: (context) {
+              var messenger = ScaffoldMessenger.of(context);
               return AlertDialog(
                 title: const Text("Login"),
                 content: Column(
@@ -113,18 +116,17 @@ class ServerCubit extends Cubit<ServerConnectionState?> {
                     child: const Text('Login'),
                     onPressed: () {
                       if (formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                             const SnackBar(content: Text('Logging In')));
 
                         login(Uri.parse(uriController.text),
                                 passwordController.text)
                             .then((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Login successful!')));
+                          messenger.showSnackBar(const SnackBar(
+                              content: Text('Login successful!')));
                           completer.complete();
                         }).catchError((error) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          messenger.showSnackBar(SnackBar(
                               content:
                                   Text('Login failed: ${error.toString()}')));
                           checkLogin().then((_) => completer.complete());

@@ -36,6 +36,7 @@ dependencies:
   flutter_bloc: ^8.0.1
   gql_dio_link: ^0.2.2
   graphql_flutter: ^5.1.0
+  shared_preferences: ^2.0.15
 
 dev_dependencies:
   flutter_test:
